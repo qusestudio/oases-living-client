@@ -1,7 +1,8 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import {fetchAuthSession, getCurrentUser} from "aws-amplify/auth"
-import {Manager, Tenant} from "@/types/prismaTypes";
 import {createNewUserInDatabase} from "@/lib/utils";
+import {TenantModel} from "@/types/models/Tenant";
+import {ManagerModel} from "@/types/models/Manager";
 
 export const api = createApi({
   baseQuery: fetchBaseQuery({
@@ -24,7 +25,9 @@ export const api = createApi({
                   const session = await fetchAuthSession();
                   const {idToken} = session.tokens ?? {};
                   const user = await getCurrentUser();
-                  const userRole = idToken?.payload["custom:Role"] as string;
+                  const userRole = idToken?.payload["custom:role"] as string;
+
+                  console.log("User Role: " + userRole);
 
                   const endpoint =
                       userRole === "manager"
@@ -33,6 +36,7 @@ export const api = createApi({
 
                   // Check if the user exists in our server
                   let userDetailsResponse = await fetchWithBQ(endpoint);
+
 
                   // If user doesn't exist, create new user
                   if (userDetailsResponse.error && userDetailsResponse.error.status === 404) {
@@ -44,10 +48,13 @@ export const api = createApi({
                       );
                   }
 
+
+                  console.log("DB Response: " + userDetailsResponse.data)
+
                   return {
                       data: {
                           cognitoInfo: {...user},
-                          userInfo: userDetailsResponse.data as Tenant | Manager,
+                          userInfo: userDetailsResponse.data as TenantModel | ManagerModel, // discrepancy
                           userRole
                       }
                   }
